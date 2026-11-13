@@ -1,90 +1,81 @@
-> Pembaruan 27 Oktober 2026: arsitektur aktif mengikuti Flutter + Firebase. UI Karina sudah disatukan di mobile/. Laravel di root adalah referensi lama. Mulai dari docs/MULAI-FIREBASE.md dan docs/ARSITEKTUR.md. Informasi pemeriksaan kerangka awal di bawah adalah catatan 22 Oktober, bukan hasil uji fitur Firebase terbaru.
-# Persiapan pengembangan SI-MELAYUR
+# Persiapan lokal aplikasi presensi
 
-Alat pengembangan disimpan di `C:\dev\si-melayur`. Lokasi ini tidak memiliki spasi agar kompatibel dengan alat Android. SDK, cache, dan kredensial lokal tidak perlu dimasukkan ke Git.
+Editor yang digunakan tetap Visual Studio Code. Proyek ini berisi Flutter dan Firebase; tidak ada perintah Composer, Artisan, atau Vite yang perlu dijalankan dari folder ini.
 
-## Alat yang terpasang
+## Alat pengembangan
 
-- Flutter 3.47.7 stable dan Dart 3.13.5.
-- Temurin Java 17.0.20.1.
-- Android SDK Platform 36 dan 34, Build Tools 36.0.0, Platform Tools 37.0.1, NDK 28.2.13676358, CMake 3.22.1, dan command-line tools.
-- Firebase CLI 15.34.1 dan FlutterFire CLI 1.4.1.
-- Ekstensi VS Code Flutter dan Dart 3.144.0.
-- PHP 8.4.25, Composer 2.10.2, Node.js 24.21.0, dan Git dari instalasi yang sudah tersedia.
+- Flutter/Dart dan Android SDK: pada mesin pengembangan ini berada di `C:\dev\si-melayur`.
+- `scripts/dev-env.ps1`: mengatur PATH Flutter, Java 17 untuk Android, Android SDK, cache, Firebase CLI, dan FlutterFire CLI pada terminal aktif.
+- `scripts/start-local-backend.ps1`: memakai Java bawaan Android Studio jika tersedia untuk menjalankan emulator Firebase.
+- Node.js untuk pengembangan Functions; runtime deployment pada functions/package.json adalah Node.js 22. Mesin lokal memakai Node.js 24 sehingga pengujian runtime deployment tetap perlu diperiksa di CI.
+- Android Studio dipakai untuk Android SDK dan emulator; kode bisa tetap diedit di VS Code.
 
-## Membuka terminal pengembangan
+Script lingkungan memuat lokasi khusus mesin ini. Anggota tim menyesuaikan lokasi SDK/Java/Flutter dengan instalasi masing-masing. SDK dan cache tidak perlu disalin ke repository.
 
-Dari folder repository, jalankan PowerShell:
+## Mengaktifkan terminal
 
 ```powershell
 . .\scripts\dev-env.ps1
 flutter doctor -v
+flutter devices
 ```
 
-Script mengaktifkan Flutter, Dart, Java, Android SDK, Firebase CLI, dan FlutterFire CLI untuk terminal yang sedang digunakan. Tidak perlu mengganti PATH Windows secara global.
+Buka emulator Android atau sambungkan HP dengan USB debugging sebelum menjalankan aplikasi.
 
-Script juga menentukan lokasi socket sementara Java yang pendek untuk menghindari error `Unable to establish loopback connection` pada Gradle di mesin ini.
+## Demo aplikasi
 
-## Struktur
+```powershell
+cd mobile
+flutter pub get
+flutter run --dart-define=APP_MODE=demo
+```
 
-- Root repository: backend Laravel 12 yang sudah ada, bukan keputusan backend final.
-- `mobile/`: kerangka aplikasi Flutter Android untuk peserta dan Admin/PJ dalam aplikasi yang sama.
-- `scripts/dev-env.ps1`: pengaturan alat pengembangan lokal.
-- `package-lock.json`: versi dependensi frontend bawaan Laravel.
+Untuk demo admin, tambahkan `--dart-define=DEMO_ROLE=admin`. Mode demo menggunakan data contoh.
 
-## Rancangan teknologi
+## Firebase dan API SI-MELAYUR lokal
 
-Mobile menggunakan Flutter/Dart. Paket yang dipersiapkan: `firebase_core`, `firebase_auth`, `google_sign_in`, `cloud_firestore`, `firebase_storage`, `geolocator`, `http`, `image_picker`, dan `intl`.
+Project pengembangan Firebase sudah terdaftar melalui alias dev. Setiap pengembang tetap memerlukan akses yang sesuai dan konfigurasi lokalnya sendiri. Jangan menyalin kredensial melalui Git atau chat.
 
-Tidak ada paket geofencing latar belakang: jarak dari titik kantor dapat dihitung dengan Geolocator saat presensi. Backend tetap harus memeriksa hak akses, periode, waktu server, koordinat, akurasi, dan aturan presensi sebelum penyimpanan. Indikator mock location dari perangkat merupakan sinyal tambahan, bukan bukti keaslian lokasi.
+- Salin `mobile/firebase-config.example.json` menjadi `mobile/firebase-config.local.json`, lalu isi konfigurasi aplikasi Firebase milik tim.
+- `functions/.env.local` menyimpan SI_MELAYUR_URL.
+- `functions/.secret.local` menyimpan SI_MELAYUR_API_KEY.
+- Website/API Laravel SI-MELAYUR dijalankan di proyek KP-DKP yang terpisah, bukan dari folder ini.
 
-## Konfigurasi Firebase yang masih diperlukan
+Jalankan backend lokal dari root repository:
 
-1. Tentukan Firebase project milik tim dan application ID Android final. `com.example.si_melayur` hanya ID sementara kerangka awal.
-2. Masuk lewat `firebase login`, lalu dari `mobile/` jalankan `flutterfire configure --platforms=android --project=ID_PROJECT` setelah memilih project yang benar.
-3. Aktifkan Google Sign-In, Firestore, dan Storage pada project tersebut. Tentukan lokasi data dan tinjau biaya sebelum membuat resource.
-4. Daftarkan fingerprint SHA-1/SHA-256 sertifikat debug dan nantinya sertifikat rilis untuk login Google Android.
-5. Siapkan aturan Firestore/Storage dan validasi backend sebelum menghubungkan data nyata. Service account dan kunci penandatanganan tidak boleh masuk Git.
+```powershell
+.\scripts\start-local-backend.ps1
+```
 
-Langkah yang membutuhkan akun/resource cloud belum dijalankan. Firebase belum diinisialisasi dalam kode aplikasi. Belum ada deployment atau perubahan pada layanan SI-MELAYUR.
-
-## Menjalankan kerangka mobile
+Di terminal terpisah:
 
 ```powershell
 . .\scripts\dev-env.ps1
-Set-Location mobile
-flutter pub get
-flutter analyze
-flutter test
-flutter run
-flutter build apk --debug
+cd mobile
+flutter run --dart-define-from-file=firebase-config.local.json --dart-define=USE_LOCAL_BACKEND=true
 ```
 
-Untuk `flutter run`, hubungkan HP Android dengan USB debugging aktif dan izinkan koneksinya di HP. Periksa dengan `flutter devices`. Android Studio/emulator bukan syarat untuk membuat APK lewat alat yang dipasang ini; emulator belum disiapkan.
-
-## Backend yang sudah ada
-
-PHP dan Composer menggunakan instalasi Herd yang sudah tersedia. Dependensi dipasang berdasarkan `composer.lock`; `.env` lokal dibuat dari contoh dan application key dibuat tanpa menampilkan nilainya. Tidak ada migrasi atau seeding database yang dijalankan.
+Untuk pemeriksaan HTTP lintas layanan, setelah Laravel dan emulator Firebase siap:
 
 ```powershell
-composer install
-php artisan test
-php artisan serve --host=127.0.0.1
+node scripts/test-local-integration.cjs
 ```
 
-Backend saat ini memakai Sanctum dan model database Laravel. Endpoint Google login menerima email dari request; integrasi Firebase ID token belum ada. Route admin juga belum memiliki middleware autentikasi di deklarasi route. Bagian ini perlu ditinjau sebelum penggunaan data nyata dan sebelum memutuskan arsitektur final Laravel atau Cloud Functions.
+Skrip memakai peserta uji dan identitas simulasi Auth emulator; tidak menggantikan uji login Google interaktif. Lihat [panduan integrasi](docs/INTEGRASI-SI-MELAYUR.md) untuk persiapan peserta dan token lokal.
 
-## Pemeriksaan awal
+## Pengujian dan APK
 
-- Branch persiapan: `chore/setup-development-environment`. Pekerjaan baru wajib diawali dengan branch baru sesuai `AGENTS.md`.
-- `flutter doctor -v`: tidak menemukan masalah lingkungan.
-- `flutter analyze`: tidak menemukan masalah kode pada kerangka awal.
-- `flutter test`: pengujian bawaan kerangka awal lulus; ini belum menguji fitur presensi.
-- `flutter build apk --debug`: berhasil. Hasilnya `mobile/build/app/outputs/flutter-apk/app-debug.apk`, yaitu APK debug kerangka awal, bukan aplikasi presensi yang sudah selesai.
-- Backend: 8 pengujian, 18 assertion lulus; build frontend bawaan Laravel juga berhasil.
+```powershell
+npm.cmd ci --prefix functions
+npm.cmd test --prefix functions
+cd mobile
+flutter analyze
+flutter test --dart-define=USE_LOCAL_BACKEND=true
+flutter build apk --debug --dart-define=APP_MODE=demo
+```
 
-## Dokumentasi resmi
+APK berada di `mobile/build/app/outputs/flutter-apk/app-debug.apk`. Build dengan flag berbeda akan menghasilkan mode aplikasi berbeda pada lokasi output yang sama.
 
-- Flutter: https://docs.flutter.dev/install/manual
-- Android SDK: https://developer.android.com/tools
-- FlutterFire: https://firebase.google.com/docs/flutter/setup
+## Riwayat pembersihan
+
+Backend Laravel presensi lama dan frontend Vite bawaannya dihapus dari root absensi-dkp pada 13 November 2026. Kode lama yang terlacak dapat ditemukan dalam riwayat Git. Arsip pemulihan lokal lengkap berada di `.local-backups/laravel-cleanup-2026-11-13/`; arsip ini diabaikan Git dan tidak boleh dibagikan karena dapat memuat rahasia lokal. Proyek KP-DKP terpisah tetap diperlukan untuk integrasi API peserta.

@@ -1,12 +1,12 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:intl/intl.dart';
 
 import '../../app.dart';
 import '../../services/firebase_gateway.dart';
 import '../../theme/app_theme.dart';
 import 'login_screen.dart';
+import '../participant/connected_dashboard.dart';
 
 class FirebaseAppShell extends StatelessWidget {
   const FirebaseAppShell({super.key, this.configurationError});
@@ -16,6 +16,30 @@ class FirebaseAppShell extends StatelessWidget {
   Widget build(BuildContext context) => MaterialApp(
     title: 'SI-MELAYUR',
     debugShowCheckedModeBanner: false,
+    builder: (context, child) => FirebaseConfig.localBackend
+        ? Column(
+            children: [
+              const Material(
+                color: Color(0xFFFFE6A6),
+                child: SafeArea(
+                  bottom: false,
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: Padding(
+                      padding: EdgeInsets.all(6),
+                      child: Text(
+                        'UJI LOKAL • DATA PENGUJIAN',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 11, color: Colors.black87),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              Expanded(child: child ?? const SizedBox.shrink()),
+            ],
+          )
+        : child ?? const SizedBox.shrink(),
     theme: AppTheme.light(),
     home: configurationError == null
         ? const ConnectedHome()
@@ -64,6 +88,7 @@ class _ConnectedHomeState extends State<ConnectedHome> {
   late final _gateway = widget.gateway ?? FirebaseGateway();
   Map<String, dynamic>? _access;
   List<Map<String, dynamic>> _records = [];
+  bool _historyLoaded = false;
   bool _busy = false;
   String? _error;
   String? _notice;
@@ -102,6 +127,7 @@ class _ConnectedHomeState extends State<ConnectedHome> {
       _records = (result['records'] as List)
           .map((record) => Map<String, dynamic>.from(record as Map))
           .toList();
+      _historyLoaded = true;
       if (result['limited'] == true) {
         _notice = 'Menampilkan maksimal 200 catatan hari ini.';
       }
@@ -121,6 +147,7 @@ class _ConnectedHomeState extends State<ConnectedHome> {
       setState(() {
         _access = null;
         _records = [];
+        _historyLoaded = false;
       });
     }
   });
@@ -164,105 +191,22 @@ class _ConnectedHomeState extends State<ConnectedHome> {
     await _refresh();
   });
 
-  String _time(dynamic sample) {
-    if (sample is! Map || sample['at'] is! String) return '—';
-    final date = DateTime.tryParse(sample['at'] as String);
-    return date == null
-        ? '—'
-        : '${DateFormat('HH.mm').format(date.toUtc().add(const Duration(hours: 7)))} WIB';
-  }
-
   @override
   Widget build(BuildContext context) {
-    final loggedIn = _access != null;
-    final admin = _access?['role'] == 'admin';
-    if (!loggedIn) {
+    if (_access == null) {
       return LoginScreen(onSignIn: _login, busy: _busy, error: _error);
     }
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('SI-MELAYUR'),
-        actions: [
-          if (loggedIn)
-            IconButton(
-              onPressed: _busy ? null : _logout,
-              tooltip: 'Keluar / Ganti Akun',
-              icon: const Icon(Icons.logout),
-            ),
-        ],
-      ),
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(20),
-          children: [
-            Text(
-              loggedIn
-                  ? (admin ? 'Presensi peserta hari ini' : 'Presensi saya')
-                  : 'Selamat datang',
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              loggedIn ? '${_access!['name'] ?? _access!['email']}' : 'Gunakan akun Google yang sama dengan email pendaftaran SI-MELAYUR.',
-            ),
-            const SizedBox(height: 20),
-            if (_busy) const LinearProgressIndicator(),
-            if (_error != null)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                child: Text(
-                  _error!,
-                  style: const TextStyle(color: AppColors.danger),
-                ),
-              ),
-            if (_notice != null)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                child: Text(_notice!),
-              ),
-            if (!loggedIn)
-              ElevatedButton.icon(
-                onPressed: _busy ? null : _login,
-                icon: const Icon(Icons.account_circle_outlined),
-                label: const Text('Masuk dengan Google'),
-              ),
-            if (loggedIn) ...[
-              if (!admin) ...[
-                ElevatedButton.icon(
-                  onPressed: _busy ? null : () => _record('checkIn'),
-                  icon: const Icon(Icons.login),
-                  label: const Text('Presensi Masuk'),
-                ),
-                const SizedBox(height: 12),
-                ElevatedButton.icon(
-                  onPressed: _busy ? null : () => _record('checkOut'),
-                  icon: const Icon(Icons.logout),
-                  label: const Text('Presensi Keluar'),
-                ),
-                const SizedBox(height: 12),
-              ],
-              OutlinedButton.icon(
-                onPressed: _busy ? null : () => _perform(_refresh),
-                icon: const Icon(Icons.refresh),
-                label: const Text('Muat ulang riwayat'),
-              ),
-              const SizedBox(height: 20),
-              if (_records.isEmpty) const Text('Belum ada catatan presensi.'),
-              ..._records.map(
-                (record) => Card(
-                  child: ListTile(
-                    title: Text('${record['date']}'),
-                    subtitle: Text(
-                      '${admin ? '${record['uid']}\n' : ''}'
-                      'Masuk: ${_time(record['checkIn'])}\nKeluar: ${_time(record['checkOut'])}',
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
+    return ConnectedDashboard(
+      access: _access!,
+      records: _records,
+      historyLoaded: _historyLoaded,
+      busy: _busy,
+      error: _error,
+      notice: _notice,
+      onRefresh: () => _perform(_refresh),
+      onCheckIn: () => _record('checkIn'),
+      onCheckOut: () => _record('checkOut'),
+      onLogout: _logout,
     );
   }
 }

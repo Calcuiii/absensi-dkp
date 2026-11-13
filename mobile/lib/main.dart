@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 import 'app.dart';
 import 'screens/common/firebase_app.dart';
@@ -23,6 +24,14 @@ Future<void> main() async {
   }
   try {
     await Firebase.initializeApp(options: FirebaseConfig.options);
+    if (FirebaseConfig.localBackend) {
+      await FirebaseAuth.instance.useAuthEmulator(
+        FirebaseConfig.emulatorHost,
+        9099,
+      );
+      // Do not reuse a cloud session when switching to the local test backend.
+      await FirebaseAuth.instance.signOut();
+    }
     runApp(const FirebaseAppShell());
   } catch (_) {
     runApp(

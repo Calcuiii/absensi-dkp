@@ -80,6 +80,11 @@ void main() {
       });
       await tester.pumpAndSettle();
       expect(find.text('Peserta Terverifikasi'), findsOneWidget);
+      await tester.scrollUntilVisible(
+        find.text('Presensi Masuk'),
+        250,
+        scrollable: find.byType(Scrollable).first,
+      );
       expect(find.text('Presensi Masuk'), findsOneWidget);
       expect(find.text('Andi Pratama'), findsNothing);
       expect(find.byType(AccessCheckScreen), findsNothing);
