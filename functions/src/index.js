@@ -4,7 +4,8 @@ const {initializeApp} = require('firebase-admin/app');
 const {getFirestore} = require('firebase-admin/firestore');
 const {onCall, HttpsError} = require('firebase-functions/v2/https');
 const {defineSecret, defineString} = require('firebase-functions/params');
-const {PolicyError, jakartaDay, verifyParticipant, validateLocation, attendanceChange} = require('./policy');
+const {PolicyError, jakartaDay, validateLocation, attendanceChange} = require('./policy');
+const {fetchParticipant} = require('./si-melayur');
 
 initializeApp();
 const db = getFirestore();
@@ -21,38 +22,15 @@ function identity(request) {
 }
 
 async function participantFor(email, day) {
-  let url;
-  try {
-    url = new URL(apiUrl.value());
-    if (url.protocol !== 'https:') throw new Error('https required');
-  } catch {
-    throw new HttpsError('failed-precondition', 'Integrasi SI-MELAYUR belum dikonfigurasi.');
-  }
-  let response;
-  try {
-    // Proposed adapter contract; map this payload when the actual API is supplied.
-    response = await fetch(url, {
-      method: 'POST', redirect: 'error', signal: AbortSignal.timeout(8000),
-      headers: {'Content-Type': 'application/json', Authorization: `Bearer ${apiKey.value()}`},
-      body: JSON.stringify({email}),
-    });
-  } catch {
-    throw new HttpsError('unavailable', 'SI-MELAYUR tidak dapat dihubungi. Coba kembali.');
-  }
-  if (response.status === 404) throw new HttpsError('permission-denied', 'Email tidak terdaftar di SI-MELAYUR.');
-  if (!response.ok) throw new HttpsError('unavailable', 'Pemeriksaan SI-MELAYUR belum berhasil.');
-  let body;
-  try { body = await response.json(); } catch {
-    throw new HttpsError('unavailable', 'Respons SI-MELAYUR tidak valid.');
-  }
-  return verifyParticipant(body.participant, email, day);
+  return fetchParticipant({url: apiUrl.value(), apiKey: apiKey.value(), email, day,
+    emulator: process.env.FUNCTIONS_EMULATOR === 'true'});
 }
 
 function callable(handler) {
   return onCall({region: 'asia-southeast2', secrets: [apiKey], timeoutSeconds: 30}, async (request) => {
     try { return await handler(request); } catch (error) {
       if (error instanceof HttpsError) throw error;
-      if (error instanceof PolicyError) throw new HttpsError(error.code, error.message);
+      if (error instanceof PolicyError) throw new HttpsError(error.code, error.message, error.details);
       // Do not expose API credentials, email addresses or location in logs/errors.
       throw new HttpsError('internal', 'Permintaan belum dapat diproses. Silakan coba lagi.');
     }

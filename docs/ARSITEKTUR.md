@@ -1,12 +1,14 @@
 # Penyatuan Flutter dan Firebase
 
-Keputusan 27 Oktober 2026: mengikuti rencana awal Flutter/Dart, Firebase Authentication, Cloud Firestore, Geolocator, dan API SI-MELAYUR. Laravel bukan komponen yang diperlukan untuk menjalankan aplikasi baru.
+Pembaruan 8 November 2026: kontrak API KP-DKP telah diberikan dan adapter lokal telah diperbarui. Untuk format respons, penanganan error, konfigurasi emulator, dan batas integrasi terbaru, gunakan [INTEGRASI-SI-MELAYUR.md](INTEGRASI-SI-MELAYUR.md). Bagian kontrak usulan di dokumen ini merupakan rancangan awal.
 
-## Mengapa sebelumnya ada Laravel?
+Arsitektur aktif: Flutter/Dart, Firebase Authentication, Cloud Firestore, Cloud Functions, Geolocator, dan API SI-MELAYUR. Website Laravel SI-MELAYUR berada di proyek KP-DKP yang terpisah dan tetap menyediakan API peserta.
 
-Branch `backend` sudah mengimplementasikan server Laravel dengan Sanctum dan database relasional. Branch `mobile-karina` berisi prototipe Flutter dengan riwayat Git terpisah dan data contoh. Keduanya belum merupakan satu sistem yang terhubung. Tidak ada bukti dalam repository tentang alasan tim memilih Laravel atau bahwa SI-MELAYUR aslinya memakai Laravel.
+## Pemisahan proyek dan pembersihan Laravel lama
 
-Laravel bukan teknologi yang salah, tetapi menggabungkannya begitu saja dengan rencana awal akan menghasilkan dua jalur autentikasi dan penyimpanan. Karena pemilik proyek memilih mengikuti rencana awal, server aplikasi baru menggunakan Firebase Cloud Functions. Kode PHP, migrasi, dan tes Laravel dipertahankan di lokasi semula sebagai referensi; jangan deploy atau gunakan endpoint tersebut sebagai bagian alur Firebase.
+Branch `backend` awal berisi server Laravel dengan Sanctum dan database relasional. Implementasi itu merupakan backend presensi lama, berbeda dari website SI-MELAYUR pada proyek KP-DKP. Branch `mobile-karina` menyediakan prototipe UI Flutter yang kemudian disatukan ke `mobile/`.
+
+Pada 13 November 2026, backend Laravel presensi lama beserta frontend Vite, dependensi, konfigurasi dan tesnya dibersihkan dari root repository atas permintaan pemilik proyek. Backend aktif tetap berada di `functions/`. Website KP-DKP dan konfigurasi API peserta tidak termasuk pembersihan ini. Riwayat Git menyimpan implementasi lama; arsip pemulihan lokal berada di `.local-backups/laravel-cleanup-2026-11-13/` dan tidak boleh diunggah karena memuat konfigurasi lokal.
 
 ## Arsitektur yang disatukan
 

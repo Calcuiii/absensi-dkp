@@ -20,7 +20,7 @@ function verifyParticipant(participant, email, day) {
   const validDate = (value) => typeof value === 'string' && date.test(value)
     && !Number.isNaN(Date.parse(value))
     && new Date(value).toISOString().slice(0, 10) === value;
-  if (!participant || participant.email?.toLowerCase() !== email.toLowerCase()
+  if (!participant || typeof participant.email !== 'string' || participant.email.toLowerCase() !== email.toLowerCase()
       || participant.status !== 'accepted' || participant.is_active !== true) {
     reject('permission-denied', 'Peserta belum diterima atau tidak aktif di SI-MELAYUR.');
   }

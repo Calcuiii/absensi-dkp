@@ -1,6 +1,6 @@
 # Mulai Firebase dari nol
 
-Firebase adalah layanan backend yang dikelola Google. Dalam proyek ini Authentication menangani login, Firestore menyimpan data, dan Cloud Functions memeriksa aturan sebelum presensi disimpan. Kamu tidak perlu menjalankan Laravel untuk alur baru.
+Firebase adalah layanan backend yang dikelola Google. Dalam proyek ini Authentication menangani login, Firestore menyimpan data, dan Cloud Functions memeriksa aturan sebelum presensi disimpan. Folder absensi-dkp tidak memerlukan Laravel. Untuk integrasi peserta, API Laravel SI-MELAYUR dijalankan dari proyek KP-DKP yang terpisah; lihat docs/INTEGRASI-SI-MELAYUR.md untuk uji lokal lintas proyek.
 
 Editor tetap **Visual Studio Code**. Buka folder proyek seperti biasa, gunakan ekstensi Flutter/Dart, dan jalankan perintah di terminal VS Code. Firebase Console hanya dibuka di browser untuk pengaturan layanan. Android Studio bukan syarat editor; HP Android dapat digunakan untuk menjalankan aplikasi.
 

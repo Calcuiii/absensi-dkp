@@ -16,6 +16,23 @@ class FirebaseConfig {
   );
   static const webClientId = String.fromEnvironment('GOOGLE_WEB_CLIENT_ID');
   static const region = 'asia-southeast2';
+  // Explicit debug-only opt-in. Real Google Sign-In is still used on Android;
+  // Firebase Auth, Functions and Firestore are emulated for this test session.
+  static const localBackend =
+      kDebugMode && bool.fromEnvironment('USE_LOCAL_BACKEND');
+  static String get emulatorHost =>
+      const String.fromEnvironment(
+        'FIREBASE_EMULATOR_HOST',
+        defaultValue: '',
+      ).isNotEmpty
+      ? const String.fromEnvironment('FIREBASE_EMULATOR_HOST')
+      : !kIsWeb && defaultTargetPlatform == TargetPlatform.android
+      ? '10.0.2.2'
+      : '127.0.0.1';
+
+  static Uri functionUrl(String name) => localBackend
+      ? Uri.http('$emulatorHost:5001', '/$projectId/$region/$name')
+      : Uri.https('$region-$projectId.cloudfunctions.net', '/$name');
 
   static bool get configured =>
       projectId.isNotEmpty &&
@@ -83,10 +100,7 @@ class FirebaseGateway {
   ]) async {
     final token = await FirebaseAuth.instance.currentUser?.getIdToken();
     if (token == null) throw const ServiceFailure('Silakan masuk kembali.');
-    final url = Uri.https(
-      '${FirebaseConfig.region}-${FirebaseConfig.projectId}.cloudfunctions.net',
-      '/$name',
-    );
+    final url = FirebaseConfig.functionUrl(name);
     try {
       // Standard Firebase HTTPS callable protocol; the server validates the ID token.
       final response = await http
