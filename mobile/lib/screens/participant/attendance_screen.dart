@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:latlong2/latlong.dart';
 
 import '../../models/models.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/attendance_map_view.dart';
 
 class AttendanceScreen extends StatefulWidget {
   const AttendanceScreen({super.key, this.stage = AttendanceType.checkIn});
@@ -205,61 +207,25 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   }
 
   Widget _buildLocationCard() {
-    return Container(
-      width: double.infinity,
+    // Koordinat Kantor DKP Provinsi Jawa Timur (Jl. Ahmad Yani No. 152 B, Surabaya)
+    const officeLocation = LatLng(-7.328587, 112.729360);
+
+    // Titik simulasi posisi pengguna berdasarkan state pengujian
+    final userPos = switch (_state) {
+      LocationCheckState.outsideArea =>
+        const LatLng(-7.338000, 112.739000), // Di luar radius
+      _ => const LatLng(-7.328500, 112.729300), // Berada di dalam radius kantor
+    };
+
+    final isInside = _state != LocationCheckState.outsideArea;
+
+    return AttendanceMapView(
+      officeLocation: officeLocation,
+      userLocation: userPos,
+      radiusMeters: 100.0,
+      isUserInside: isInside,
+      officeName: 'DKP Provinsi Jawa Timur',
       height: 220,
-      decoration: BoxDecoration(
-        color: AppColors.paleBlue,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: AppColors.ocean.withValues(alpha: 0.08)),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Stack(
-        children: [
-          Positioned.fill(child: CustomPaint(painter: _MapGridPainter())),
-          Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  width: 74,
-                  height: 74,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.ocean.withValues(alpha: 0.16),
-                        blurRadius: 20,
-                        spreadRadius: 4,
-                      ),
-                    ],
-                  ),
-                  child: const Icon(
-                    Icons.location_on_rounded,
-                    color: AppColors.ocean,
-                    size: 40,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                const Text(
-                  'DKP Provinsi Jawa Timur',
-                  style: TextStyle(
-                    color: AppColors.navy,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 15,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                const Text(
-                  'Surabaya',
-                  style: TextStyle(color: AppColors.muted, fontSize: 13),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 

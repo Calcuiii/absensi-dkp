@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../theme/app_theme.dart';
+import '../../widgets/attendance_map_view.dart';
 import '../../widgets/common_widgets.dart';
 
 /// Presentation for authenticated accounts. All business data comes from the server.
@@ -343,6 +344,12 @@ class _ConnectedDashboardState extends State<ConnectedDashboard> {
       ),
       if (!_admin) ...[
         const SizedBox(height: 16),
+        const AttendanceMapView(
+          height: 190,
+          officeName: 'Lokasi Kantor DKP Jatim',
+          radiusMeters: 100,
+        ),
+        const SizedBox(height: 14),
         InfoCard(
           child: Row(
             children: [
