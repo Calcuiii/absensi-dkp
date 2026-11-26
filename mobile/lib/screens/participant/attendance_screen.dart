@@ -571,25 +571,3 @@ class _LocationStatusData {
   final Color color;
   final Color background;
 }
-
-class _MapGridPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = AppColors.ocean.withValues(alpha: 0.07)
-      ..strokeWidth = 1;
-
-    const grid = 32.0;
-
-    for (double x = 0; x <= size.width; x += grid) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
-    }
-
-    for (double y = 0; y <= size.height; y += grid) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
